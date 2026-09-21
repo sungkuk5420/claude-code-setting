@@ -1,0 +1,258 @@
+{
+  "model": "claude-fable-5-1[1m]",
+  "autoUpdatesChannel": "latest",
+  "tui": "fullscreen",
+  "theme": "dark",
+  "agentPushNotifEnabled": true,
+  "skipWorkflowUsageWarning": true,
+  "worktree": {
+    "baseRef": "head",
+    "symlinkDirectories": ["node_modules"]
+  },
+  "permissions": {
+    "disableBypassPermissionsMode": "disable",
+    "allow": [
+      "Edit",
+      "Write",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(git add:*)",
+      "Bash(git switch:*)",
+      "Bash(git commit:*)",
+      "Bash(git restore --staged:*)",
+      "Bash(git worktree list:*)",
+      "Bash(git -C * status:*)",
+      "Bash(git -C * diff:*)",
+      "Bash(git -C * log:*)",
+      "Bash(git -C * show:*)",
+      "Bash(git -C * branch:*)",
+      "Bash(git -C * rev-parse:*)",
+      "Bash(git -C * add:*)",
+      "Bash(git -C * switch:*)",
+      "Bash(git -C * commit:*)",
+      "Bash(git -C * worktree list:*)",
+      "Bash(npm install:*)",
+      "Bash(npm ci:*)",
+      "Bash(npm run:*)",
+      "Bash(npm test:*)",
+      "Bash(npm list:*)",
+      "Bash(npm outdated:*)",
+      "Bash(npm audit:*)",
+      "Bash(npx:*)",
+      "Bash(yarn:*)",
+      "Bash(pnpm:*)",
+      "Bash(node:*)",
+      "Bash(tsc:*)",
+      "Bash(vue-tsc:*)",
+      "Bash(eslint:*)",
+      "Bash(prettier:*)",
+      "Bash(jest:*)",
+      "Bash(vitest:*)",
+      "PowerShell(npm:*)",
+      "PowerShell(npx:*)",
+      "PowerShell(node:*)",
+      "PowerShell(yarn:*)",
+      "PowerShell(pnpm:*)",
+      "PowerShell(tsc:*)",
+      "PowerShell(vue-tsc:*)",
+      "PowerShell(eslint:*)",
+      "PowerShell(prettier:*)",
+      "PowerShell(jest:*)",
+      "PowerShell(vitest:*)",
+      "PowerShell(git status:*)",
+      "PowerShell(git diff:*)",
+      "PowerShell(git log:*)",
+      "PowerShell(git show:*)",
+      "PowerShell(git branch:*)",
+      "PowerShell(git fetch:*)",
+      "PowerShell(git pull:*)",
+      "PowerShell(git add:*)",
+      "PowerShell(git switch:*)",
+      "PowerShell(git commit:*)",
+      "PowerShell(git restore --staged:*)",
+      "PowerShell(Get-Content:*)",
+      "PowerShell(Get-ChildItem:*)",
+      "PowerShell(Test-Path:*)",
+      "PowerShell(Select-String:*)",
+      "PowerShell(Get-Process:*)",
+      "PowerShell(Get-NetTCPConnection:*)"
+    ],
+    "ask": [
+      "Bash(rm -r:*)",
+      "Bash(rm -rf:*)",
+      "Bash(git push:*)",
+      "Bash(git -C * push:*)",
+      "PowerShell(git push:*)",
+      "PowerShell(git -C * push:*)",
+      "PowerShell(Remove-Item:*)",
+      "PowerShell(rm:*)",
+      "PowerShell(rmdir:*)",
+      "PowerShell(del:*)",
+      "PowerShell(Clear-Content:*)",
+      "PowerShell(Stop-Process:*)",
+      "Bash(npx -y:*)",
+      "Bash(npx --yes:*)",
+      "Bash(npm exec:*)",
+      "Bash(pnpm dlx:*)",
+      "Bash(yarn dlx:*)",
+      "Bash(bunx:*)",
+      "PowerShell(npx -y:*)",
+      "PowerShell(npx --yes:*)",
+      "PowerShell(npm exec:*)",
+      "PowerShell(pnpm dlx:*)",
+      "PowerShell(yarn dlx:*)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(!.env.example)",
+      "Read(!.env.sample)",
+      "Read(!.env.development)",
+      "Read(!.env.test)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push *--force*)",
+      "Bash(git push * -f)",
+      "Bash(git push * -f *)",
+      "Bash(git push *--delete*)",
+      "Bash(git push * -d *)",
+      "Bash(git -C * push *--force*)",
+      "Bash(git -C * push * -f)",
+      "Bash(git -C * push * -f *)",
+      "Bash(git -C * push *--delete*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git -C * reset --hard:*)",
+      "Bash(git clean -f:*)",
+      "Bash(git clean -fd:*)",
+      "Bash(git -C * clean -f:*)",
+      "Bash(git -C * clean -fd:*)",
+      "Bash(git branch -D:*)",
+      "Bash(git -C * branch -D:*)",
+      "Bash(git checkout --:*)",
+      "Bash(git restore --worktree:*)",
+      "Bash(git switch *--discard-changes*)",
+      "Bash(git -C * switch *--discard-changes*)",
+      "Bash(git commit --amend:*)",
+      "Bash(git commit *--amend*)",
+      "Bash(git -C * commit *--amend*)",
+      "Bash(git commit *--no-verify*)",
+      "Bash(git commit * -n *)",
+      "Bash(git commit * -n)",
+      "Bash(git -C * commit *--no-verify*)",
+      "Bash(git -C * commit * -n *)",
+      "Bash(git rebase:*)",
+      "Bash(git -C * rebase:*)",
+      "PowerShell(git push --force:*)",
+      "PowerShell(git push -f:*)",
+      "PowerShell(git push *--force*)",
+      "PowerShell(git push * -f)",
+      "PowerShell(git push * -f *)",
+      "PowerShell(git push *--delete*)",
+      "PowerShell(git push * -d *)",
+      "PowerShell(git -C * push *--force*)",
+      "PowerShell(git -C * push * -f)",
+      "PowerShell(git -C * push * -f *)",
+      "PowerShell(git -C * push *--delete*)",
+      "PowerShell(git reset --hard:*)",
+      "PowerShell(git -C * reset --hard:*)",
+      "PowerShell(git clean -f:*)",
+      "PowerShell(git clean -fd:*)",
+      "PowerShell(git -C * clean -f:*)",
+      "PowerShell(git -C * clean -fd:*)",
+      "PowerShell(git branch -D:*)",
+      "PowerShell(git -C * branch -D:*)",
+      "PowerShell(git checkout --:*)",
+      "PowerShell(git restore --worktree:*)",
+      "PowerShell(git switch *--discard-changes*)",
+      "PowerShell(git -C * switch *--discard-changes*)",
+      "PowerShell(git commit --amend:*)",
+      "PowerShell(git commit *--amend*)",
+      "PowerShell(git -C * commit *--amend*)",
+      "PowerShell(git commit *--no-verify*)",
+      "PowerShell(git commit * -n *)",
+      "PowerShell(git commit * -n)",
+      "PowerShell(git -C * commit *--no-verify*)",
+      "PowerShell(git -C * commit * -n *)",
+      "PowerShell(git rebase:*)",
+      "PowerShell(git -C * rebase:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"__CLAUDE_DIR__/hooks/superpowers-session-start\"",
+            "shell": "bash",
+            "async": false
+          }
+        ]
+      },
+      {
+        "matcher": "compact|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_DIR__/hooks/reinject-loop-state.cjs\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_DIR__/hooks/block-main-commit-push.cjs\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_DIR__/hooks/record-edited-tree.cjs\"",
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_DIR__/hooks/verify-on-stop.cjs\"",
+            "timeout": 600
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "logout|prompt_input_exit|other",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_DIR__/hooks/session-end-cleanup.cjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

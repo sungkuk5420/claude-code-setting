@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# SessionStart hook - injects the superpowers "using-superpowers" skill into every session.
+#
+# Adapted from obra/superpowers hooks/session-start (MIT). Three changes from upstream:
+#   1. SKILL_PATH points at the globally installed skill (~/.claude/skills/using-superpowers)
+#      (honouring CLAUDE_CONFIG_DIR for split accounts) rather than a plugin checkout, so `npx skills update` keeps this hook current and
+#      there is only one copy of the skill on disk.
+#   2. JSON escaping is done by awk, not by bash ${var//pat/repl}. On bash 5.3 (Git Bash on
+#      Windows) the replacement string's backslash is consumed, so upstream's version turns
+#      every newline into a bare "n" and leaves quotes unescaped - valid JSON carrying
+#      mangled text. awk's gsub has no such version drift.
+#   3. Emits only the Claude Code shape (hookSpecificOutput.additionalContext); the upstream
+#      branching for Cursor / Copilot CLI is not needed here.
+#
+# Wired from ~/.claude/settings.json (SessionStart, matcher "startup|clear|compact").
+
+set -euo pipefail
+
+SKILL_PATH="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/using-superpowers/SKILL.md"
+
+# Nothing to inject if the skill was removed - stay silent rather than break session start.
+[ -f "$SKILL_PATH" ] || exit 0
+
+# Escape the skill for embedding in a JSON string: backslash, quote, tab and CR, and every
+# line ending becomes a literal \n.
+skill_escaped=$(
+  awk '
+    {
+      gsub(/\\/, "\\\\")
+      gsub(/"/, "\\\"")
+      gsub(/\t/, "\\t")
+      gsub(/\r/, "\\r")
+      printf "%s\\n", $0
+    }
+  ' "$SKILL_PATH"
+)
+
+header='<EXTREMELY_IMPORTANT>\nYou have superpowers.\n\n**Below is the full content of your using-superpowers skill - your introduction to using skills. For all other skills, use the Skill tool:**\n\n'
+footer='</EXTREMELY_IMPORTANT>'
+
+# printf, not a heredoc - bash 5.3+ hangs on heredocs here (obra/superpowers#571).
+printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s%s%s"\n  }\n}\n' \
+  "$header" "$skill_escaped" "$footer"
+
+exit 0

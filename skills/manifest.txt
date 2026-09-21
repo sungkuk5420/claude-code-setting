@@ -1,0 +1,17 @@
+# 설치할 스킬 패키지 목록. 한 줄에 하나: <owner/repo> [skill1,skill2,...]
+# 스킬 목록을 생략하면 그 레포의 모든 스킬(-s '*')을 설치한다.
+# 설치 명령: npx skills add <owner/repo> -g -y --copy -a claude-code -s <skills|*>
+# 설치 후 실제 상태는 ~/.agents/.skill-lock.json 에 기록된다(skill-lock.snapshot.json 은 참고용 스냅샷).
+
+# 핵심: 프로세스·규율 스킬 (brainstorming, systematic-debugging, TDD, plans, SDD, review, worktrees ...)
+obra/superpowers
+
+# UI/UX 설계 데이터 검색 스킬 (search.py 는 ~/.claude/skills/ui-ux-pro-max/scripts/ 에 설치됨)
+# 이 레포는 banner-design/brand/design/design-system/slides/ui-styling 도 같이 들어 있으므로 반드시 스킬명을 지정한다.
+nextlevelbuilder/ui-ux-pro-max-skill ui-ux-pro-max
+
+# 선택: 산문 다듬기 (사용 빈도 낮음 — 필요하면 주석 해제)
+# blader/humanizer
+
+# 선택: skills.sh 생태계 검색 (마케팅성, 사용 빈도 낮음 — 필요하면 주석 해제)
+# vercel-labs/skills find-skills
