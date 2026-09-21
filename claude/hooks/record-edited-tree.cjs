@@ -17,11 +17,13 @@ const os = require('node:os');
 const path = require('node:path');
 const log = require('./hook-log.cjs');
 
-const CODE_EXTS = ['.ts', '.tsx', '.vue', '.js', '.jsx', '.cjs', '.mjs', '.svelte'];
+const CODE_EXTS = ['.ts', '.tsx', '.vue', '.js', '.jsx', '.cjs', '.mjs', '.svelte', '.dart'];
+// Flutter 화면 파일: lib/ 아래 화면·위젯 디렉토리 또는 *_screen/_page/_widget/_view/_dialog/_sheet.dart
+const DART_UI = /\/lib\/.*(\/(screens?|pages?|widgets?|ui|presentation|views?)\/|_(screen|page|widget|view|dialog|sheet|tab|card|form)\.dart$)/i;
 // 화면에 영향을 주는 파일 — Stop 게이트의 화면검증(UI) 요구 대상. 스타일·마크업도 포함.
 const UI_EXTS = ['.vue', '.tsx', '.jsx', '.svelte', '.html', '.css', '.scss', '.sass', '.less', '.styl'];
 const UI_DIRS = /\/(components?|views?|pages?|layouts?|screens?|widgets?|ui)\//i;
-const TEST_RE = /(\.(test|spec)\.[cm]?[jt]sx?$|(^|\/)__tests__\/.*\.[cm]?[jt]sx?$)/;
+const TEST_RE = /(\.(test|spec)\.[cm]?[jt]sx?$|(^|\/)__tests__\/.*\.[cm]?[jt]sx?$|_test\.dart$)/;
 const STATE_PREFIX = 'claude-verify-gate-';
 
 let raw = '';
@@ -31,14 +33,15 @@ let input; try { input = JSON.parse(raw); } catch { process.exit(0); }
 const filePath = ((input.tool_input && (input.tool_input.file_path || input.tool_input.notebook_path)) || '').replace(/\\/g, '/');
 if (!filePath) process.exit(0);
 const isCode = CODE_EXTS.some(e => filePath.endsWith(e));
-const isUi = UI_EXTS.some(e => filePath.endsWith(e)) || (isCode && UI_DIRS.test(filePath));
+const isUi = UI_EXTS.some(e => filePath.endsWith(e)) || (isCode && !filePath.endsWith('.dart') && UI_DIRS.test(filePath))
+  || (filePath.endsWith('.dart') && DART_UI.test(filePath));
 if (!isCode && !isUi) process.exit(0);
 if (!fs.existsSync(filePath)) process.exit(0);
 
 function findPkgRoot(p) {
   let dir = path.dirname(p);
   for (let i = 0; i < 30; i++) {
-    if (fs.existsSync(path.join(dir, 'package.json'))) return dir;
+    if (fs.existsSync(path.join(dir, 'package.json')) || fs.existsSync(path.join(dir, 'pubspec.yaml'))) return dir; // node 또는 Flutter/Dart 트리
     const parent = path.dirname(dir);
     if (parent === dir) break;
     dir = parent;

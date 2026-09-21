@@ -17,9 +17,10 @@ if grep -q '\.claude/worktrees/' "$gi"; then say ".gitignore: 이미 있음"
 else printf '\n' >> "$gi"; cat "$HERE/gitignore.snippet" >> "$gi"; say ".gitignore: snippet 추가"; fi
 
 # work_log
-mkdir -p "$TARGET/claudedocs"
-if [ -f "$TARGET/claudedocs/work_log.md" ]; then say "work_log.md: 이미 있음"
-else cp "$HERE/claudedocs/work_log.md" "$TARGET/claudedocs/work_log.md"; say "work_log.md: 생성"; fi
+if [ -f "$TARGET/CLAUDE.md" ] && grep -q "work_log.md" "$TARGET/CLAUDE.md" && [ ! -f "$TARGET/claudedocs/work_log.md" ]; then
+  say "work_log.md: CLAUDE.md 가 이미 다른 위치를 지정함 — 생성 생략"
+elif [ -f "$TARGET/claudedocs/work_log.md" ]; then say "work_log.md: 이미 있음"
+else mkdir -p "$TARGET/claudedocs"; cp "$HERE/claudedocs/work_log.md" "$TARGET/claudedocs/work_log.md"; say "work_log.md: 생성"; fi
 
 # rules
 for r in "${RULES[@]:-}"; do

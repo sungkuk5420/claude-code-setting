@@ -90,6 +90,23 @@ install.ps1 / install.sh     설치 스크립트 (복사 → 스킬 → 검증)
   안 보이므로 이 키는 CLI 복붙 실수를 막는 보험이다. 값은 문자열 `"disable"` 만 유효하다(`true` 는 무시됨).
   무인 루프는 기본 auto 모드로 돈다(ask 목록의 push·삭제 확인은 어느 모드에서도 유지된다).
 
+## 설정 디렉토리가 여러 개일 때 (CLAUDE_CONFIG_DIR)
+
+Claude Code 는 `CLAUDE_CONFIG_DIR` 가 있으면 그 폴더를, 없으면 `~/.claude` 를 쓴다. **누가 그 변수를 세팅하느냐**가
+곧 어느 설정이 로드되느냐다.
+
+| 실행 경로 | 환경변수 출처 | 설정 디렉토리 |
+|---|---|---|
+| VS Code 확장 패널 | 없음 | `~/.claude` |
+| VS Code 통합 터미널의 `claude` | `terminal.integrated.env.windows` (VS Code settings.json) | 그 값(예: `~/.claude-vscode`) |
+| Cursor 통합 터미널의 `claude` | `terminal.integrated.env.windows` (Cursor settings.json) | 그 값(예: `~/.claude-cursor`) |
+| Windows Terminal / PowerShell | 없음(프로필·사용자 env 에 없으면) | `~/.claude` |
+| 계정 분리 런처 `Start-ClaudeCode.ps1` | 스크립트가 세팅 | `~/.claude-<account>` |
+
+이 레포는 한 디렉토리에만 설치한다. 다른 디렉토리에도 같은 설정을 넣으려면 `CLAUDE_CONFIG_DIR` 를 그 경로로 두고
+`install.ps1` 을 다시 실행한다. 단, 디렉토리마다 로그인·프로젝트 신뢰·세션 이력·`~/.claude.json` 이 따로 가므로
+**가능하면 하나로 합친다**(IDE 의 `terminal.integrated.env.windows` 에서 `CLAUDE_CONFIG_DIR` 를 지우면 터미널도 `~/.claude` 를 쓴다).
+
 ## 훅 동작과 끄는 법
 
 | 훅 | 이벤트 | 환경변수 | 비고 |
@@ -97,8 +114,9 @@ install.ps1 / install.sh     설치 스크립트 (복사 → 스킬 → 검증)
 | superpowers-session-start | SessionStart `startup\|clear\|compact` | — | using-superpowers 전문 주입. `resume` 은 이력에 원래 주입이 남아 있어 제외 |
 | reinject-loop-state | SessionStart `compact\|resume` | `CLAUDE_REINJECT=off` | compact: 브랜치·`git status`·최근 커밋 5·게이트 상태·`.claude/loop-contract.md`·work_log 의 미커밋/보류/미완 줄(≤1.5KB). resume: 게이트·계약만. 3초 예산, fail-open |
 | block-main-commit-push | PreToolUse `Bash\|PowerShell` | `CLAUDE_GIT_GUARD=off`, `CLAUDE_PROTECTED_BRANCHES=main,master,DEPLOY-*` | 토큰 단위 `git` 만 보므로 따옴표 안(`node -e "…execSync('git push')"`)은 별도 규칙으로 deny. git 이 타임아웃(3초)·실행 실패로 브랜치를 못 알려주면 `ask`(대화형에서만 사람 확인, 헤드리스는 거부 → reason 의 재시도 안내). fail-open 은 로그에 남긴다 |
-| record-edited-tree | PostToolUse `Edit\|Write\|…` | — | 트리 최초 기록 시 HEAD 테스트 파일 스냅샷·HEAD sha 저장. eslint exit 1 → exit 2 로 반환, exit≥2 는 조용히 통과(로그) |
+| record-edited-tree | PostToolUse `Edit\|Write\|…` | — | 트리 최초 기록 시 HEAD 테스트 파일 스냅샷·HEAD sha 저장. eslint exit 1 → exit 2 로 반환, exit≥2 는 조용히 통과(로그). node(package.json)·Flutter(pubspec.yaml) 트리 모두 기록, `.dart` 는 lib/ 의 screens·pages·widgets 디렉토리나 *_screen/_page/_widget.dart 면 화면 파일로 취급 |
 | verify-on-stop | Stop | `CLAUDE_VERIFY_GATE=off`, `CLAUDE_VERIFY_MAX_BLOCKS`(기본 3), `CLAUDE_VERIFY_BUDGET_SEC`(기본 540, settings timeout 600 보다 작아야 함) | Claude 가 응답을 끝낼 때마다 발화하지만 편집 기록·미커밋 코드 변경이 없으면 즉시 exit(이전 턴에서 차단돼 상태파일이 남아 있으면 질문 답변 턴에도 다시 돈다). 예산 초과 시 통과한 트리를 기억하고 남은 트리만 다음 Stop 에서 이어 검증(무언 통과 없음; 시간 초과만 남으면 1회 차단 후 경고와 함께 통과). 상한 도달 시 마지막 1회는 "미해결 실패를 보고에 명시하고 종료" 지시 + 화면에 systemMessage, 다음 Stop 은 무조건 통과. 테스트 파일 순감소 차단(`<tree>/.claude/verify/test-removal.md` 로 사유 승인), `--passWithNoTests` 는 스냅샷 테스트 0개 트리만 |
+| verify-on-stop (Flutter) | Stop | 위와 동일 | pubspec 트리는 `.dart_tool` 이 있을 때 `flutter analyze --no-pub` → `flutter test --no-pub`(test/*_test.dart 있을 때). flutter 는 `FLUTTER_ROOT` → PATH → `android/local.properties` 의 `flutter.sdk` → 흔한 설치 경로 순으로 찾고, 못 찾으면 경고 후 통과. 콜드 analyze 가 2~3분이라 예산(540s)을 의식할 것 |
 | verify-on-stop 화면검증 | Stop | `CLAUDE_UI_GATE=off` | 화면 파일을 편집한 세션은 `<repo>/.claude/verify/` 에 마지막 편집 이후 증거(스크린샷 등)가 있어야 완료. 불가능하면 `ui-skip.md` 에 사유 |
 | session-end-cleanup | SessionEnd `logout\|prompt_input_exit\|other` | — | 이 세션의 상태파일 삭제 + 7일 넘은 잔재 청소. `clear`/`resume` 은 제외(게이트 유지). 크래시·강제 종료에는 발화하지 않으므로 7일 스윕과 verify-on-stop 의 24시간 카운터 리셋이 주된 방어. timeout 5초 |
 | reviewer-readonly | code-reviewer 의 PreToolUse `Bash`(frontmatter hooks) | — | 세그먼트마다 리다이렉션 쓰기·tee·sed -i·rm/mv·git 변경 서브커맨드를 deny, git 조회·cat/grep/find·`npx vitest <파일>` 류만 허용. 파싱 실패도 deny(fail-closed). 사용자 스코프 에이전트라 워크스페이스 trust 없이 돈다 |

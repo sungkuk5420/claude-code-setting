@@ -45,8 +45,8 @@ const os = require('node:os');
 const path = require('node:path');
 const log = require('./hook-log.cjs');
 
-const CODE_EXTS = ['.ts', '.tsx', '.vue', '.js', '.jsx', '.cjs', '.mjs', '.svelte'];
-const TEST_RE = /(\.(test|spec)\.[cm]?[jt]sx?$|(^|\/)__tests__\/.*\.[cm]?[jt]sx?$)/;
+const CODE_EXTS = ['.ts', '.tsx', '.vue', '.js', '.jsx', '.cjs', '.mjs', '.svelte', '.dart'];
+const TEST_RE = /(\.(test|spec)\.[cm]?[jt]sx?$|(^|\/)__tests__\/.*\.[cm]?[jt]sx?$|_test\.dart$)/;
 const MAX_BLOCKS = Math.max(1, parseInt(process.env.CLAUDE_VERIFY_MAX_BLOCKS || '3', 10) || 3);
 const BUDGET_SEC = Math.max(30, Number(process.env.CLAUDE_VERIFY_BUDGET_SEC) || 540);
 const DEADLINE = Date.now() + BUDGET_SEC * 1000;
@@ -140,6 +140,37 @@ function testRemoval(tree, info) {
   const waiver = evidenceSince(tree, info.last || 0, 'test-removal.md');
   return { snap, gone, waived: waiver.ok };
 }
+// ---- Flutter/Dart 트리 ----
+// pubspec.yaml 이 있는 트리는 node_modules 대신 .dart_tool 로 "의존성 준비됨"을 판단하고,
+// typecheck = `flutter analyze --no-pub`, test = `flutter test --no-pub`(test/ 에 *_test.dart 가 있을 때만).
+// flutter 실행파일: FLUTTER_ROOT → PATH → <tree>/android/local.properties 의 flutter.sdk → 흔한 설치 경로.
+function isDartTree(tree) { return fs.existsSync(path.join(tree, 'pubspec.yaml')); }
+function hasDartTests(tree) {
+  try { return fs.readdirSync(path.join(tree, 'test')).some(n => n.endsWith('_test.dart')); } catch { return false; }
+}
+function flutterBin(root) {
+  const cands = process.platform === 'win32' ? ['flutter.bat', 'flutter'] : ['flutter'];
+  for (const c of cands) { const p = path.join(root, 'bin', c); if (fs.existsSync(p)) return p; }
+  return null;
+}
+function findFlutter(tree) {
+  if (process.env.FLUTTER_ROOT) { const b = flutterBin(process.env.FLUTTER_ROOT); if (b) return b; }
+  try {
+    const out = execFileSync(process.platform === 'win32' ? 'where' : 'which', ['flutter'], { stdio: ['ignore', 'pipe', 'ignore'], timeout: 3000, windowsHide: true }).toString().split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    for (const p of out) { if (fs.existsSync(p) && !/WindowsApps/i.test(p)) return p; }
+  } catch { /* PATH 에 없음 */ }
+  try {
+    const lp = fs.readFileSync(path.join(tree, 'android', 'local.properties'), 'utf8');
+    const m = lp.match(/^flutter\.sdk=(.+)$/m);
+    if (m) { const root = m[1].trim().replace(/\\\\/g, '\\').replace(/\\:/g, ':'); const b = flutterBin(root); if (b) return b; }
+  } catch { /* 없음 */ }
+  const home = os.homedir();
+  for (const root of ['C:/src/flutter', 'C:/flutter', path.join(home, 'flutter'), path.join(home, 'development', 'flutter'), path.join(home, 'fvm', 'default'), '/usr/local/flutter', '/opt/flutter']) {
+    const b = flutterBin(root); if (b) return b;
+  }
+  return null;
+}
+
 function readPkg(dir) {
   try { return JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')); } catch { return null; }
 }
@@ -201,9 +232,10 @@ for (const tree of trees) {
 
 // 2) typecheck / test — 후보를 먼저 추려 남은 명령 수로 시간 예산을 나눈다.
 st.passed = st.passed || {};
+const dartTrees = new Set(trees.filter(isDartTree));
 const cands = [];
 for (const tree of trees) {
-  if (!fs.existsSync(path.join(tree, 'node_modules'))) continue;
+  if (!fs.existsSync(path.join(tree, isDartTree(tree) ? '.dart_tool' : 'node_modules'))) continue; // 의존성 미설치 → 검증 불가, 스킵
   if (changedCodeFiles(tree).length === 0) { delete st.passed[tree]; continue; }
   const hash = changeHash(tree);
   const p = st.passed[tree];
@@ -220,6 +252,32 @@ for (const c of cands) {
   const passed = { hash, tc: !!(c.prev && c.prev.tc), test: !!(c.prev && c.prev.test) };
 
   if (DEADLINE - Date.now() < 5000) { unverified.push(tree); remainingCmds -= 2; continue; }
+  if (dartTrees.has(tree)) { // Flutter/Dart: analyze → test
+    const fl = findFlutter(tree);
+    if (!fl) {
+      notes.push(`${label}: flutter SDK 를 찾지 못해 analyze/test 를 건너뜀 — FLUTTER_ROOT 를 설정하거나 PATH 에 넣어라`);
+      passed.tc = true; passed.test = true; st.passed[tree] = passed; remainingCmds -= 2; continue;
+    }
+    if (!passed.tc) {
+      const tc = run(tree, `"${fl}" analyze --no-pub`);
+      ran.push({ tree: label, cmd: 'flutter analyze', ms: tc.ms, ok: tc.ok });
+      if (!tc.ok) { failures.push({ kind: tc.timedOut ? 'timeout' : 'fail', text: `### ${label} — flutter analyze 실패\n${tc.out}` }); st.passed[tree] = passed; remainingCmds -= 2; continue; }
+      passed.tc = true;
+    }
+    remainingCmds -= 1;
+    if (!passed.test) {
+      if (DEADLINE - Date.now() < 5000) { unverified.push(tree); st.passed[tree] = passed; remainingCmds -= 1; continue; }
+      if ((snapByTree[tree] || []).length > 0 || hasDartTests(tree)) {
+        const t = run(tree, `"${fl}" test --no-pub`);
+        ran.push({ tree: label, cmd: 'flutter test', ms: t.ms, ok: t.ok });
+        if (!t.ok) { failures.push({ kind: t.timedOut ? 'timeout' : 'fail', text: `### ${label} — flutter test 실패\n${t.out}` }); st.passed[tree] = passed; remainingCmds -= 1; continue; }
+      }
+      passed.test = true;
+    }
+    remainingCmds -= 1;
+    st.passed[tree] = passed;
+    continue;
+  }
 
   // typecheck: 스크립트 있으면 그 도구, 없으면 tsc --noEmit. 로컬 바이너리 없으면 스킵.
   if (!passed.tc) {
@@ -286,7 +344,7 @@ if ((process.env.CLAUDE_UI_GATE || '').toLowerCase() !== 'off') {
       `이 세션에서 화면 파일을 편집했다:\n${files.slice(0, 12).map(f => '  - ' + f).join('\n')}${files.length > 12 ? `\n  … 외 ${files.length - 12}개` : ''}\n` +
       `프론트 변경은 화면을 띄워 확인해야 완료다(전역 규칙 PW-6). 마지막 UI 편집 이후의 증거를 ${evDir}/ 에 남겨라:\n` +
       `  1) 앱을 띄운다 (run 스킬 / 프로젝트 dev·verify 스크립트 / node ${CONFIG_DIR}/scripts/cdp.cjs launch <url>)\n` +
-      `  2) node ${CONFIG_DIR}/scripts/cdp.cjs shot "${evDir}/after.png"  (필요하면 eval·text·sample·console 도)\n` +
+      `  2) node ${CONFIG_DIR}/scripts/cdp.cjs shot "${evDir}/after.png"  (필요하면 eval·text·sample·console 도; Flutter 앱은 기기·에뮬레이터에 띄운 뒤 flutter screenshot -o "${evDir}/after.png")\n` +
       `  3) 스크린샷을 Read 로 열어 실제로 보고, 본 것을 최종 보고에 적는다.\n` +
       `화면 확인이 정말 불가능하면(앱 실행 불가·헤드리스 환경) "${evDir}/ui-skip.md" 에 사유를 쓰고 최종 보고에 그 사유를 포함하라.` });
   }
