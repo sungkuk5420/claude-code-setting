@@ -73,8 +73,12 @@ install.ps1 / install.sh     설치 스크립트 (복사 → 스킬 → 검증)
    `!` 부정 규칙으로 제외). `disableBypassPermissionsMode: "disable"` 로 bypass 모드 잠금.
 2. **ask** — 사람이 봐야 하는 것: `git push`(`git -C * push` 포함), `rm -r`/`Remove-Item` 류, 미설치 패키지 즉시 실행
    (`npx -y`, `npm exec`, `pnpm dlx`, `yarn dlx`, `bunx`).
-3. **allow** — 조회·빌드·서브 브랜치 커밋: git 조회, `git add/switch/commit`(`git -C *` 형태 포함), npm/npx/node/테스트
-   도구, PowerShell 조회 cmdlet. `git checkout` 은 allow 에서 뺐다(브랜치 생성·이동은 `switch`).
+3. **allow** — **`Bash`·`PowerShell`·`WebFetch`·`WebSearch` 전체.** auto 모드 분류기를 거치지 않으므로 셸 명령은 프롬프트 없이
+   돈다(2026-09-22 결정: 분류기가 `sed -i` 편집을 "Security Weaken" 으로 거부하고 변수·루프·heredoc 이 든 명령마다 심사를
+   걸어 프롬프트가 잦았다). 그 대신 ask 에 외부 쓰기·배포·원격 접속(gh merge/release, az/aws/gcloud, firebase/vercel/fly
+   deploy, supabase db push, docker push, kubectl apply, ssh/scp, npm publish, curl POST/PUT/DELETE, 레지스트리·서비스 변경)을
+   명시했다. 여기 없는 외부 쓰기는 프롬프트 없이 나가므로 새 CLI 를 쓰기 시작하면 ask 에 추가한다. 개별 allow 항목은 다른
+   프로필·프로젝트에서 bare allow 를 빼고 쓸 때를 위해 남겨 뒀다.
 
 - 평가 순서는 deny → ask → allow. commit 은 allow 지만 보호 브랜치는 훅이 막는다. 훅은 fail-open 이라 git 미검출·
   타임아웃 시 통과할 수 있다(타임아웃·실행 실패는 ask 로 넘긴다, 아래 표).
