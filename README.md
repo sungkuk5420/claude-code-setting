@@ -103,8 +103,16 @@ Claude Code 는 `CLAUDE_CONFIG_DIR` 가 있으면 그 폴더를, 없으면 `~/.c
 | Windows Terminal / PowerShell | 없음(프로필·사용자 env 에 없으면) | `~/.claude` |
 | 계정 분리 런처 `Start-ClaudeCode.ps1` | 스크립트가 세팅 | `~/.claude-<account>` |
 
-이 레포는 한 디렉토리에만 설치한다. 다른 디렉토리에도 같은 설정을 넣으려면 `CLAUDE_CONFIG_DIR` 를 그 경로로 두고
-`install.ps1` 을 다시 실행한다. 단, 디렉토리마다 로그인·프로젝트 신뢰·세션 이력·`~/.claude.json` 이 따로 가므로
+이 레포는 한 번에 한 디렉토리에 설치한다. 프로필을 나눠 쓰면 디렉토리마다 설치한다:
+
+```powershell
+.\install.ps1                                   # ~/.claude (스킬은 npx skills 가 여기에만 설치한다)
+$env:CLAUDE_CONFIG_DIR = "$env:USERPROFILE\.claude-cursor"
+.\install.ps1 -SkipSkills -LinkSkillsFrom "$env:USERPROFILE\.claude\skills"   # 스킬은 정션으로 공유
+Remove-Item Env:CLAUDE_CONFIG_DIR
+```
+
+설치는 `settings.json` 을 통째로 덮어쓰므로 그 디렉토리에만 두는 키(`fastMode`, `autoMode` 등)는 백업본에서 다시 넣는다. 단, 디렉토리마다 로그인·프로젝트 신뢰·세션 이력·`~/.claude.json` 이 따로 가므로
 **가능하면 하나로 합친다**(IDE 의 `terminal.integrated.env.windows` 에서 `CLAUDE_CONFIG_DIR` 를 지우면 터미널도 `~/.claude` 를 쓴다).
 
 ## 훅 동작과 끄는 법

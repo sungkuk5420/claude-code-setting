@@ -26,7 +26,10 @@
 [CmdletBinding()]
 param(
     [switch]$SkipSkills,
-    [switch]$DryRun
+    [switch]$DryRun,
+    # 다른 설정 디렉토리(예: ~/.claude-cursor)에 설치할 때, npx skills 가 ~/.claude/skills 에만 설치하므로
+    # 그 폴더의 스킬을 정션(junction)으로 연결한다. 예: -LinkSkillsFrom "$env:USERPROFILE\.claude\skills"
+    [string]$LinkSkillsFrom
 )
 
 $ErrorActionPreference = 'Stop'
@@ -122,6 +125,20 @@ if ($SkipSkills) {
         if (-not $DryRun) {
             & npx -y skills add $pkg -g -y --copy -a claude-code -s $skills
             if ($LASTEXITCODE -ne 0) { Write-Warning "스킬 설치 실패: $pkg (exit $LASTEXITCODE)" }
+        }
+    }
+}
+
+# --- 3.1 스킬 정션 (프로필 분리 시) -------------------------------------------
+if ($LinkSkillsFrom) {
+    $dstSkills = Join-Path $Target 'skills'
+    if (-not (Test-Path $LinkSkillsFrom)) { Write-Warning "LinkSkillsFrom 경로가 없습니다: $LinkSkillsFrom" }
+    else {
+        if (-not $DryRun) { New-Item -ItemType Directory -Force -Path $dstSkills | Out-Null }
+        Get-ChildItem $LinkSkillsFrom -Directory | Where-Object { $_.Name -ne 'synced' } | ForEach-Object {
+            $t = Join-Path $dstSkills $_.Name
+            if (Test-Path -LiteralPath $t) { Say "스킬  유지 $($_.Name)" }
+            else { Say "스킬  정션 $($_.Name) -> $($_.FullName)"; if (-not $DryRun) { New-Item -ItemType Junction -Path $t -Target $_.FullName | Out-Null } }
         }
     }
 }
