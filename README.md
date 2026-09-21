@@ -237,6 +237,21 @@ Electron 앱은 메인 프로세스에 `app.commandLine.appendSwitch('remote-deb
 | `/batch` | 워크트리 에이전트 5~30개가 각자 PR 을 연다 → push·PR 확인 규칙(PW-2)과 충돌, 이 워크플로에선 쓰지 않음 | `/ultra` + worktree-worker |
 | `fewer-permission-prompts` | 프로젝트 settings 의 allow 후보 제안 | 후보 참고용(전역은 이 레포에서 수동) |
 
+## 프로젝트에 적용하기
+
+전역 설정은 `~/.claude` 가 담당하고, 각 레포에는 **그 레포에서 규칙을 실행하는 데 필요한 사실**만 둔다.
+
+```bash
+./templates/project/init-project.sh <프로젝트 경로> [--rules vue-options-api]
+```
+
+- `.gitignore` 에 `.claude/worktrees/`·`.claude/verify/`·`.claude/loop-contract.md`·`.superpowers/` 추가
+- `claudedocs/work_log.md` 생성(PW-9)
+- `--rules` 로 `templates/rules/*.md` 를 `.claude/rules/` 에 복사(예: Vue Options API 규칙)
+- `CLAUDE.md` 끝에 '## Claude Code 운용' 절을 붙인다. 앱 실행 명령·포트, 검증 게이트가 돌릴 스크립트, 보호 브랜치,
+  비밀 파일, 화면검증 시 켜면 안 되는 외부 쓰기 기능을 **손으로 채운다**. 이미 있으면 건드리지 않는다.
+- 전역 규칙과 겹치는 프로젝트 규칙(한국어 답변, Fail Fast 등)은 프로젝트 파일에서 지운다. 적용 예: web-seolbi, seolbi-admin.
+
 ## 새 규칙·훅을 추가할 때
 
 1. `claude/` 아래에서 수정한다 (`~/.claude` 를 직접 고치면 다음 설치 때 덮어써진다).
